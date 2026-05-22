@@ -1,24 +1,10 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { PrismaClient } from "../generated/prisma";
-import { MailService } from "../mail/mail.service";
+import { prisma } from "../../prisma/prisma";
 
-const globalForPrisma = globalThis as unknown as {
-  prisma?: PrismaClient;
-};
+// import { MailService } from "../mail/mail.service";
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: ["error", "warn"],
-  });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
-
-// ⚠️ IMPORTANT: we create mail service manually (Better Auth runs outside Nest DI)
-const mailService = new MailService();
+// const mailService = new MailService();
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -41,24 +27,19 @@ export const auth = betterAuth({
   },
 
   session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7 days
+    expiresIn: 60 * 60 * 24 * 7,
   },
 
   emailVerification: {
     enabled: true,
-
     async sendVerificationEmail({ user, token }) {
       const url = `http://localhost:3000/auth/verify-email?token=${token}`;
 
-      await mailService.sendEmail(
-        user.email,
-        "Verify your email",
-        `
-          <h2>Email Verification</h2>
-          <p>Click the link below to verify your account:</p>
-          <a href="${url}">${url}</a>
-        `
-      );
+      // await mailService.sendEmail(
+      //   user.email,
+      //   "Verify your email",
+      //   `<a href="${url}">${url}</a>`
+      // );
     },
   },
 

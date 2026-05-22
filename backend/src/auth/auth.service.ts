@@ -8,8 +8,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 import { RegisterDto } from './dto/register';
 import { LoginDto } from './dto/login';
+import { auth } from '../auth/auth';
 
-import { auth } from './auth';
 
 @Injectable()
 export class AuthService {
@@ -53,13 +53,13 @@ export class AuthService {
       throw new BadRequestException('Username already exists');
     }
 
-    await auth.api.signUpEmail({
-      body: {
-        email: normalizedEmail,
-        password,
-        name: `${firstName} ${lastName}`,
-      },
-    });
+await auth.api.signUpEmail({
+  body: {
+    email: normalizedEmail,
+    password,
+    name: `${firstName} ${lastName}`,
+  },
+} as any);
 
     const user = await this.prisma.user.update({
       where: {

@@ -1,4 +1,3 @@
-// src/prisma/prisma.service.ts
 
 import {
   INestApplication,

@@ -1,0 +1,24 @@
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model Email {
+  id        String   @id @default(cuid())
+
+  to        String
+  from      String?
+
+  subject   String
+  body      String
+
+  status    EmailStatus @default(PENDING)
+
+  error     String?
+
+  retries   Int      @default(0)
+
+  createdAt DateTime @default(now())
+  sentAt    DateTime?
+}

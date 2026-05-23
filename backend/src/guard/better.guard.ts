@@ -20,8 +20,6 @@ export class BetterAuthGuard implements CanActivate {
       if (!session || !session.user) {
         throw new UnauthorizedException('Unauthorized');
       }
-
-      // 🔥 Attach user to request
       req.user = session.user;
       req.session = session;
 

@@ -22,3 +22,17 @@ model Email {
   createdAt DateTime @default(now())
   sentAt    DateTime?
 }
+model Otp {
+  id           String   @id @default(cuid())
+
+  email        String
+  Otp         String   // hashed OTP
+
+  expiresAt    DateTime
+  verified     Boolean  @default(false)
+
+  resendCount  Int      @default(0)
+  lastResendAt DateTime?
+
+  createdAt    DateTime @default(now())
+}

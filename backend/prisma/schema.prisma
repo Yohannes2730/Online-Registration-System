@@ -13,61 +13,74 @@ enum Role {
 }
 
 model User {
-  id String @id @default(cuid())
+  id            String   @id @default(cuid())
 
-  firstName String
-  lastName  String
+  name          String
 
-  username String @unique
+  firstName     String
+  lastName      String
+  username      String   @unique
 
-  birthDate DateTime
+  birthDate     DateTime
+  phoneNumber   String
 
-  phoneNumber String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
 
-  email         String  @unique
-  emailVerified Boolean @default(false)
+  image         String?
 
-  password String
+  role          Role     @default(USER)
 
-  image String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  role Role @default(USER)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  otpTokens OtpToken[]
-  sessions  Session[]
-
-  @@index([email])
-  @@index([username])
-}
-
-model OtpToken {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String
-  expiresAt DateTime
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([token])
+  accounts      Account[]
+  sessions      Session[]
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String
+  id        String   @id
   expiresAt DateTime
-  ipAddress String
-  userAgent String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  token     String   @unique
+  createdAt DateTime
+  updatedAt DateTime
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress String?
+  userAgent String?
 
-  @@index([userId])
+  userId    String
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id        String @id
+
+  accountId  String
+  providerId String
+
+  userId     String
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+
+  scope     String?
+  password  String?
+
+  createdAt DateTime
+  updatedAt DateTime
+}
+
+model Verification {
+  id         String @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+
+  createdAt DateTime?
+  updatedAt DateTime?
 }

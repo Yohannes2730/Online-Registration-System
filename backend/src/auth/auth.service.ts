@@ -5,17 +5,16 @@ import {
 } from '@nestjs/common';
 
 import { PrismaService } from '../../prisma/prisma.service';
-
 import { RegisterDto } from './dto/register';
 import { LoginDto } from './dto/login';
 import { auth } from '../auth/auth';
-
 
 @Injectable()
 export class AuthService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async register(registerData: RegisterDto) {
+  // ---------------- REGISTER ----------------
+  async register(dto: RegisterDto) {
     const {
       firstName,
       lastName,
@@ -25,85 +24,51 @@ export class AuthService {
       birthDate,
       phoneNumber,
       image,
-    } = registerData;
+    } = dto;
 
-    if (!firstName || !lastName || !username || !email || !password) {
+    if (
+      !firstName ||
+      !lastName ||
+      !username ||
+      !email ||
+      !password ||
+      !birthDate ||
+      !phoneNumber
+    ) {
       throw new BadRequestException('Missing required fields');
     }
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const existingEmail = await this.prisma.user.findUnique({
-      where: {
+    const result = await auth.api.signUpEmail({
+      body: {
         email: normalizedEmail,
-      },
-    });
+        password,
+        name: `${firstName} ${lastName}`,
 
-    if (existingEmail) {
-      throw new BadRequestException('Email already exists');
-    }
-
-    const existingUsername = await this.prisma.user.findUnique({
-      where: {
-        username,
-      },
-    });
-
-    if (existingUsername) {
-      throw new BadRequestException('Username already exists');
-    }
-
-await auth.api.signUpEmail({
-  body: {
-    email: normalizedEmail,
-    password,
-    name: `${firstName} ${lastName}`,
-  },
-} as any);
-
-    const user = await this.prisma.user.update({
-      where: {
-        email: normalizedEmail,
-      },
-      data: {
         firstName,
         lastName,
         username,
         birthDate: new Date(birthDate),
         phoneNumber,
-        image,
+        image: image || '',
       },
     });
 
     return {
       success: true,
-      message: 'Registration successful',
-      data: user,
+      message: 'User registered successfully',
+      data: result,
     };
   }
 
-  async login(loginData: LoginDto) {
-    const { email, password } = loginData;
-
-    const normalizedEmail = email.trim().toLowerCase();
-
-    const user = await this.prisma.user.findUnique({
-      where: {
-        email: normalizedEmail,
-      },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
-    }
-
-    if (!user.emailVerified) {
-      throw new BadRequestException('Please verify your email');
-    }
+  // ---------------- LOGIN ----------------
+  async login(dto: LoginDto) {
+    const { email, password } = dto;
 
     const session = await auth.api.signInEmail({
       body: {
-        email: normalizedEmail,
+        email: email.trim().toLowerCase(),
         password,
       },
     });
@@ -112,10 +77,10 @@ await auth.api.signUpEmail({
       success: true,
       message: 'Login successful',
       session,
-      user,
     };
   }
 
+  // ---------------- LOGOUT ----------------
   async logout(token: string) {
     await auth.api.signOut({
       headers: {
@@ -129,11 +94,10 @@ await auth.api.signUpEmail({
     };
   }
 
+  // ---------------- ME ----------------
   async getMe(userId: string) {
     const user = await this.prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
+      where: { id: userId },
       select: {
         id: true,
         firstName: true,

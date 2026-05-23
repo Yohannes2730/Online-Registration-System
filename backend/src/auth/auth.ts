@@ -2,10 +2,6 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "../../prisma/prisma";
 
-// import { MailService } from "../mail/mail.service";
-
-// const mailService = new MailService();
-
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
@@ -22,6 +18,7 @@ export const auth = betterAuth({
       username: { type: "string", required: true },
       birthDate: { type: "date", required: true },
       phoneNumber: { type: "string", required: true },
+      image: { type: "string", required: false },
       role: { type: "string", defaultValue: "USER" },
     },
   },
@@ -34,12 +31,7 @@ export const auth = betterAuth({
     enabled: true,
     async sendVerificationEmail({ user, token }) {
       const url = `http://localhost:3000/auth/verify-email?token=${token}`;
-
-      // await mailService.sendEmail(
-      //   user.email,
-      //   "Verify your email",
-      //   `<a href="${url}">${url}</a>`
-      // );
+      console.log("Verify Email:", url);
     },
   },
 

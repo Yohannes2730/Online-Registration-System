@@ -5,7 +5,7 @@ enum EmailStatus {
 }
 
 model Email {
-  id        String   @id @default(cuid())
+  id        String      @id @default(cuid())
 
   to        String
   from      String?
@@ -17,16 +17,17 @@ model Email {
 
   error     String?
 
-  retries   Int      @default(0)
+  retries   Int         @default(0)
 
-  createdAt DateTime @default(now())
+  createdAt DateTime    @default(now())
   sentAt    DateTime?
 }
+
 model Otp {
   id           String   @id @default(cuid())
 
   email        String
-  Otp         String   // hashed OTP
+  otp          String
 
   expiresAt    DateTime
   verified     Boolean  @default(false)

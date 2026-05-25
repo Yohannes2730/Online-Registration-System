@@ -1,35 +1,56 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+} from '@nestjs/common';
+
 import { PrismaService } from '../../prisma/prisma.service';
-import { MailerService } from '@nestjs-modules/mailer'; 
+
+import { MailerService } from '@nestjs-modules/mailer';
+
 import { randomInt } from 'crypto';
+
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class EmailService {
   constructor(
-    private readonly mailerService: MailerService,
     private readonly prisma: PrismaService,
+    private readonly mailerService: MailerService,
   ) {}
-
 
   private generateOtp(): string {
     return randomInt(100000, 999999).toString();
   }
 
-  
-  async sendOtp(email: string): Promise<{ message: string }> {
-    if (!email) throw new BadRequestException('Email is required');
+  async sendOtp(
+    email: string,
+  ): Promise<{ message: string }> {
+    if (!email) {
+      throw new BadRequestException(
+        'Email is required',
+      );
+    }
 
     const otp = this.generateOtp();
-    const hashedOtp = await bcrypt.hash(otp, 10);
 
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 min
+    const hashedOtp = await bcrypt.hash(
+      otp,
+      10,
+    );
 
-    await this.prisma.Otp.deleteMany({
-      where: { email },
+    const expiresAt = new Date(
+      Date.now() + 5 * 60 * 1000,
+    );
+
+    // delete old OTPs
+    await this.prisma.otp.deleteMany({
+      where: {
+        email,
+      },
     });
 
-    await this.prisma.Otp.create({
+    // create new OTP
+    await this.prisma.otp.create({
       data: {
         email,
         otp: hashedOtp,
@@ -40,76 +61,154 @@ export class EmailService {
       },
     });
 
+    // send email
     await this.mailerService.sendMail({
       to: email,
+
       from: `"Your App" <${process.env.MAIL_USER}>`,
+
       subject: 'Your OTP Code',
-      text: `Your OTP code is ${otp}. It will expire in 5 minutes.`,
+
+      text: `Your OTP code is ${otp}. It expires in 5 minutes.`,
+
       html: `
-        <div>
-          <h2>Your OTP Code</h2>
-          <p><b>${otp}</b></p>
-          <p>This code will expire in 5 minutes.</p>
+        <div style="font-family:sans-serif">
+          <h2>Email Verification</h2>
+
+          <p>Your OTP code is:</p>
+
+          <h1>${otp}</h1>
+
+          <p>This OTP expires in 5 minutes.</p>
         </div>
       `,
     });
 
-    return { message: 'OTP sent successfully' };
+    return {
+      message: 'OTP sent successfully',
+    };
   }
 
-    async verifyOtp(email: string, otp: string) {
-    if (!email) throw new BadRequestException('Email is required');
-
-    const record = await this.prisma.Otp.findFirst({
-      where: { email },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (!record) throw new BadRequestException('OTP not found');
-
-    if (record.expiresAt < new Date()) {
-      throw new BadRequestException('OTP expired');
+  async verifyOtp(
+    email: string,
+    otp: string,
+  ): Promise<{ message: string }> {
+    if (!email || !otp) {
+      throw new BadRequestException(
+        'Email and OTP are required',
+      );
     }
 
-    const isValid = await bcrypt.compare(otp, record.otp);
-    if (!isValid) throw new BadRequestException('Invalid OTP');
+    const record = await this.prisma.otp.findFirst({
+      where: {
+        email,
+      },
 
-    await this.prisma.Otp.update({
-      where: { id: record.id },
-      data: { verified: true },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
 
+    if (!record) {
+      throw new BadRequestException(
+        'OTP not found',
+      );
+    }
+
+    if (record.expiresAt < new Date()) {
+      throw new BadRequestException(
+        'OTP expired',
+      );
+    }
+
+    const isValid = await bcrypt.compare(
+      otp,
+      record.otp,
+    );
+
+    if (!isValid) {
+      throw new BadRequestException(
+        'Invalid OTP',
+      );
+    }
+
+    // verify OTP
+    await this.prisma.otp.update({
+      where: {
+        id: record.id,
+      },
+
+      data: {
+        verified: true,
+      },
+    });
+
+    // verify user email
     await this.prisma.user.update({
-      where: { email },
-      data: { emailVerified: true },
+      where: {
+        email,
+      },
+
+      data: {
+        emailVerified: true,
+      },
     });
 
-    return { message: 'Email verified successfully' };
+    return {
+      message: 'Email verified successfully',
+    };
   }
-  async resendOtp(email: string): Promise<{ message: string }> {
-    const record = await this.prisma.Otp.findFirst({
-      where: { email },
-      orderBy: { createdAt: 'desc' },
+
+  async resendOtp(
+    email: string,
+  ): Promise<{ message: string }> {
+    if (!email) {
+      throw new BadRequestException(
+        'Email is required',
+      );
+    }
+
+    const record = await this.prisma.otp.findFirst({
+      where: {
+        email,
+      },
+
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
 
     const now = new Date();
 
     if (record) {
+      // resend limit
       if (record.resendCount >= 3) {
-        throw new BadRequestException('Resend OTP limit reached');
+        throw new BadRequestException(
+          'Resend OTP limit reached',
+        );
       }
 
+      // wait 60 sec
       if (
         record.lastResendAt &&
-        now.getTime() - new Date(record.lastResendAt).getTime() < 60000
+        now.getTime() -
+          record.lastResendAt.getTime() <
+          60000
       ) {
-        throw new BadRequestException('Wait 60 seconds before resending OTP');
+        throw new BadRequestException(
+          'Wait 60 seconds before resending OTP',
+        );
       }
 
-      await this.prisma.Otp.update({
-        where: { id: record.id },
+      await this.prisma.otp.update({
+        where: {
+          id: record.id,
+        },
+
         data: {
-          resendCount: record.resendCount + 1,
+          resendCount:
+            record.resendCount + 1,
+
           lastResendAt: now,
         },
       });

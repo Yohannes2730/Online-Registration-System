@@ -25,15 +25,11 @@ model Email {
 
 model Otp {
   id           String   @id @default(cuid())
-
   email        String
   otp          String
-
   expiresAt    DateTime
   verified     Boolean  @default(false)
-
   resendCount  Int      @default(0)
   lastResendAt DateTime?
-
   createdAt    DateTime @default(now())
 }

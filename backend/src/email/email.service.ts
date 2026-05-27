@@ -1,14 +1,10 @@
-import {
-  Injectable,
-  BadRequestException,
-} from '@nestjs/common';
-
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MailerService } from '@nestjs-modules/mailer';
 import { randomInt } from 'crypto';
 import * as bcrypt from 'bcryptjs';
-
-@Injectable() // 🔥 THIS WAS MISSING
+import { EmailDto } from './dto/email.dto';
+@Injectable()
 export class EmailService {
   constructor(
     private readonly prisma: PrismaService,
@@ -25,9 +21,7 @@ export class EmailService {
     }
 
     const otp = this.generateOtp();
-
     const hashedOtp = await bcrypt.hash(otp, 10);
-
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     await this.prisma.otp.deleteMany({
@@ -47,14 +41,14 @@ export class EmailService {
 
     await this.mailerService.sendMail({
       to: email,
-      from: `"Your App" <${process.env.MAIL_USER}>`,
+      from: `"Your App" <${process.env.EMAIL_USER}>`,
       subject: 'Your OTP Code',
-      text: `Your OTP code is ${otp}. It expires in 5 minutes.`,
       html: `
-        <div style="font-family:sans-serif">
+        <div style="font-family: Arial, sans-serif;">
           <h2>Email Verification</h2>
-          <h1>${otp}</h1>
-          <p>This OTP expires in 5 minutes.</p>
+          <p>Your OTP code is:</p>
+          <h1 style="letter-spacing: 4px;">${otp}</h1>
+          <p>This code will expire in 5 minutes.</p>
         </div>
       `,
     });
@@ -72,15 +66,19 @@ export class EmailService {
       orderBy: { createdAt: 'desc' },
     });
 
-    if (!record) throw new BadRequestException('OTP not found');
+    if (!record) {
+      throw new BadRequestException('OTP not found');
+    }
 
-    if (record.expiresAt < new Date())
+    if (record.expiresAt < new Date()) {
       throw new BadRequestException('OTP expired');
+    }
 
     const isValid = await bcrypt.compare(otp, record.otp);
 
-    if (!isValid)
+    if (!isValid) {
       throw new BadRequestException('Invalid OTP');
+    }
 
     await this.prisma.otp.update({
       where: { id: record.id },
@@ -116,7 +114,7 @@ export class EmailService {
         record.lastResendAt &&
         now.getTime() - record.lastResendAt.getTime() < 60000
       ) {
-        throw new BadRequestException('Wait 60 seconds');
+        throw new BadRequestException('Wait 60 seconds before resending');
       }
 
       await this.prisma.otp.update({

@@ -6,6 +6,8 @@ export class EmailDto {
 
   @IsString()
   subject: string;
+  @IsString()
+  otp :string;
 
   @IsString()
   message: string;

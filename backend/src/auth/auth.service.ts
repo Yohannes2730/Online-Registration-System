@@ -8,10 +8,14 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto } from './dto/register';
 import { LoginDto } from './dto/login';
 import { auth } from '../auth/auth';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
 
   // ---------------- REGISTER ----------------
   async register(dto: RegisterDto) {
@@ -40,6 +44,16 @@ export class AuthService {
 
     const normalizedEmail = email.trim().toLowerCase();
 
+    // CHECK IF USER EXISTS
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (existingUser) {
+      throw new BadRequestException('Email already exists');
+    }
+
+    // CREATE USER
     const result = await auth.api.signUpEmail({
       body: {
         email: normalizedEmail,
@@ -55,9 +69,12 @@ export class AuthService {
       },
     });
 
+    // SEND OTP
+    await this.emailService.sendOtp(normalizedEmail);
+
     return {
       success: true,
-      message: 'User registered successfully',
+      message: 'User registered successfully. OTP sent to email.',
       data: result,
     };
   }
@@ -66,9 +83,26 @@ export class AuthService {
   async login(dto: LoginDto) {
     const { email, password } = dto;
 
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // CHECK EMAIL VERIFIED
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    if (!user.emailVerified) {
+      throw new UnauthorizedException(
+        'Please verify your email before login',
+      );
+    }
+
     const session = await auth.api.signInEmail({
       body: {
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         password,
       },
     });

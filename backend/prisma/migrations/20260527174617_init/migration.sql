@@ -1,6 +1,9 @@
 -- CreateEnum
 CREATE TYPE "Role" AS ENUM ('USER', 'ADMIN');
 
+-- CreateEnum
+CREATE TYPE "EmailStatus" AS ENUM ('PENDING', 'SENT', 'FAILED');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
@@ -63,6 +66,36 @@ CREATE TABLE "Verification" (
     "updatedAt" TIMESTAMP(3),
 
     CONSTRAINT "Verification_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Email" (
+    "id" TEXT NOT NULL,
+    "to" TEXT NOT NULL,
+    "from" TEXT,
+    "subject" TEXT NOT NULL,
+    "body" TEXT NOT NULL,
+    "status" "EmailStatus" NOT NULL DEFAULT 'PENDING',
+    "error" TEXT,
+    "retries" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "sentAt" TIMESTAMP(3),
+
+    CONSTRAINT "Email_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Otp" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "otp" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "verified" BOOLEAN NOT NULL DEFAULT false,
+    "resendCount" INTEGER NOT NULL DEFAULT 0,
+    "lastResendAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Otp_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex

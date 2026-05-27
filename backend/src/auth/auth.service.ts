@@ -52,6 +52,13 @@ export class AuthService {
     if (existingUser) {
       throw new BadRequestException('Email already exists');
     }
+    const existing = await this.prisma.user.findUnique({
+      where: { username },
+    });
+
+    if (existing) {
+      throw new BadRequestException('Username already exists');
+    }
 
     // CREATE USER
     const result = await auth.api.signUpEmail({
@@ -95,9 +102,7 @@ export class AuthService {
     }
 
     if (!user.emailVerified) {
-      throw new UnauthorizedException(
-        'Please verify your email before login',
-      );
+      throw new UnauthorizedException('Please verify your email before login');
     }
 
     const session = await auth.api.signInEmail({

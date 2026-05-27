@@ -1,12 +1,6 @@
 import {
   Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
+  Post} from '@nestjs/common';
 import { EmailService } from './email.service';
 import { EmailDto } from './dto/email.dto';
 @Controller('email')

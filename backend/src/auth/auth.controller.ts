@@ -20,7 +20,7 @@ export class AuthController {
   verifyOtp(@Body() body: { email: string; otp: string }) {
     return this.emailService.verifyOtp(body.email, body.otp);
   }
-
+// resend otp
   @Post('resend-otp')
   resendOtp(@Body() body: { email: string }) {
     return this.emailService.resendOtp(body.email);

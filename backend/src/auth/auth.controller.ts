@@ -16,6 +16,7 @@ export class AuthController {
   register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
+  //verify otp
   @Post('verify-otp')
   verifyOtp(@Body() body: { email: string; otp: string }) {
     return this.emailService.verifyOtp(body.email, body.otp);

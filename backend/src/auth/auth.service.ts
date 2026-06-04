@@ -29,7 +29,6 @@ export class AuthService {
       phoneNumber,
       image,
     } = dto;
-
     if (
       !firstName ||
       !lastName ||
@@ -48,14 +47,12 @@ export class AuthService {
     const existingUser = await this.prisma.user.findUnique({
       where: { email: normalizedEmail },
     });
-
     if (existingUser) {
       throw new BadRequestException('Email already exists');
     }
     const existing = await this.prisma.user.findUnique({
       where: { username },
     });
-
     if (existing) {
       throw new BadRequestException('Username already exists');
     }
@@ -66,7 +63,6 @@ export class AuthService {
         email: normalizedEmail,
         password,
         name: `${firstName} ${lastName}`,
-
         firstName,
         lastName,
         username,
@@ -119,6 +115,77 @@ export class AuthService {
     };
   }
 
+  // ---------------- FORGOT PASSWORD ----------------
+async forgotPassword(email: string) {
+  if (!email) {
+    throw new BadRequestException('Email is required');
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const user = await this.prisma.user.findUnique({
+    where: { email: normalizedEmail },
+  });
+
+  if (!user) {
+    throw new BadRequestException('User not found');
+  }
+
+  await this.emailService.sendOtp(normalizedEmail);
+
+  return {
+    success: true,
+    message: 'Password reset OTP sent to email',
+  };
+}
+// ---------------- RESET PASSWORD ----------------
+async resetPassword(email: string, otp: string, newPassword: string) {
+  if (!email || !otp || !newPassword) {
+    throw new BadRequestException('Missing required fields');
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // verify OTP using email service
+  const isValid = await this.emailService.sendOtp(
+    normalizedEmail,
+    otp,
+  );
+
+  if (!isValid) {
+    throw new BadRequestException('Invalid or expired OTP');
+  }
+
+  await auth.api.updatePassword({
+    body: {
+      email: normalizedEmail,
+      newPassword,
+    },
+  });
+
+  // cleanup OTP after success
+  await this.emailService.sendOtp(normalizedEmail);
+
+  return {
+    success: true,
+    message: 'Password reset successful',
+  };
+}
+  // ---------------- ME ----------------
+  async getMe(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return {
+      success: true,
+      data: user,
+    };
+  }
   // ---------------- LOGOUT ----------------
   async logout(token: string) {
     await auth.api.signOut({
@@ -132,31 +199,6 @@ export class AuthService {
       message: 'Logged out successfully',
     };
   }
-
-  // ---------------- ME ----------------
-  async getMe(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        username: true,
-        email: true,
-        phoneNumber: true,
-        image: true,
-        role: true,
-        birthDate: true,
-      },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-
-    return {
-      success: true,
-      data: user,
-    };
-  }
 }
+
+

@@ -3,7 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { MailerService } from '@nestjs-modules/mailer';
 import { randomInt } from 'crypto';
 import * as bcrypt from 'bcryptjs';
-import { EmailDto } from './dto/email.dto';
+
 @Injectable()
 export class EmailService {
   constructor(
@@ -15,6 +15,7 @@ export class EmailService {
     return randomInt(100000, 999999).toString();
   }
 
+  // ---------------- SEND OTP ----------------
   async sendOtp(email: string): Promise<{ message: string }> {
     if (!email) {
       throw new BadRequestException('Email is required');
@@ -44,19 +45,17 @@ export class EmailService {
       from: `"Your App" <${process.env.EMAIL_USER}>`,
       subject: 'Your OTP Code',
       html: `
-        <div style="font-family: Arial, sans-serif;">
-          <h2>Email Verification</h2>
-          <p>Your OTP code is:</p>
-          <h1 style="letter-spacing: 4px;">${otp}</h1>
-          <p>This code will expire in 5 minutes.</p>
-        </div>
+        <h2>OTP Verification</h2>
+        <h1 style="letter-spacing:5px">${otp}</h1>
+        <p>Valid for 5 minutes</p>
       `,
     });
 
     return { message: 'OTP sent successfully' };
   }
 
-  async verifyOtp(email: string, otp: string) {
+  // ---------------- VERIFY OTP ----------------
+  async verifyOtp(email: string, otp: string): Promise<boolean> {
     if (!email || !otp) {
       throw new BadRequestException('Email and OTP are required');
     }
@@ -82,17 +81,22 @@ export class EmailService {
 
     await this.prisma.otp.update({
       where: { id: record.id },
-      data: { verified: true },
+      data: {
+        verified: true,
+      },
     });
 
     await this.prisma.user.update({
       where: { email },
-      data: { emailVerified: true },
+      data: {
+        emailVerified: true,
+      },
     });
 
-    return { message: 'Email verified successfully' };
+    return true;
   }
 
+  // ---------------- RESEND OTP ----------------
   async resendOtp(email: string) {
     if (!email) {
       throw new BadRequestException('Email is required');

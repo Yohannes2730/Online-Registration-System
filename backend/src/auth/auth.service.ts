@@ -9,6 +9,7 @@ import { RegisterDto } from './dto/register';
 import { LoginDto } from './dto/login';
 import { auth } from '../auth/auth';
 import { EmailService } from '../email/email.service';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class AuthService {
@@ -29,35 +30,25 @@ export class AuthService {
       phoneNumber,
       image,
     } = dto;
-    if (
-      !firstName ||
-      !lastName ||
-      !username ||
-      !email ||
-      !password ||
-      !birthDate ||
-      !phoneNumber
-    ) {
-      throw new BadRequestException('Missing required fields');
-    }
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // CHECK IF USER EXISTS
-    const existingUser = await this.prisma.user.findUnique({
+    const existing = await this.prisma.user.findUnique({
       where: { email: normalizedEmail },
     });
-    if (existingUser) {
+
+    if (existing) {
       throw new BadRequestException('Email already exists');
     }
-    const existing = await this.prisma.user.findUnique({
+
+    const existingUsername = await this.prisma.user.findUnique({
       where: { username },
     });
-    if (existing) {
+
+    if (existingUsername) {
       throw new BadRequestException('Username already exists');
     }
 
-    // CREATE USER
     const result = await auth.api.signUpEmail({
       body: {
         email: normalizedEmail,
@@ -72,12 +63,11 @@ export class AuthService {
       },
     });
 
-    // SEND OTP
     await this.emailService.sendOtp(normalizedEmail);
 
     return {
       success: true,
-      message: 'User registered successfully. OTP sent to email.',
+      message: 'User registered. OTP sent.',
       data: result,
     };
   }
@@ -88,17 +78,14 @@ export class AuthService {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // CHECK EMAIL VERIFIED
     const user = await this.prisma.user.findUnique({
       where: { email: normalizedEmail },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
+    if (!user) throw new UnauthorizedException('User not found');
 
     if (!user.emailVerified) {
-      throw new UnauthorizedException('Please verify your email before login');
+      throw new UnauthorizedException('Verify email first');
     }
 
     const session = await auth.api.signInEmail({
@@ -116,78 +103,62 @@ export class AuthService {
   }
 
   // ---------------- FORGOT PASSWORD ----------------
-async forgotPassword(email: string) {
-  if (!email) {
-    throw new BadRequestException('Email is required');
+  async forgotPassword(email: string) {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (!user) throw new BadRequestException('User not found');
+
+    await this.emailService.sendOtp(normalizedEmail);
+
+    return {
+      success: true,
+      message: 'OTP sent for password reset',
+    };
   }
 
-  const normalizedEmail = email.trim().toLowerCase();
+  // ---------------- RESET PASSWORD ----------------
+  async resetPassword(email: string, otp: string, newPassword: string) {
+    const normalizedEmail = email.trim().toLowerCase();
 
-  const user = await this.prisma.user.findUnique({
-    where: { email: normalizedEmail },
-  });
+    await this.emailService.verifyOtp(normalizedEmail, otp);
 
-  if (!user) {
-    throw new BadRequestException('User not found');
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await this.prisma.account.updateMany({
+      where: {
+        user: { email: normalizedEmail },
+        providerId: 'credential',
+      },
+      data: {
+        password: hashedPassword,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Password reset successful',
+    };
   }
 
-  await this.emailService.sendOtp(normalizedEmail);
-
-  return {
-    success: true,
-    message: 'Password reset OTP sent to email',
-  };
-}
-// ---------------- RESET PASSWORD ----------------
-async resetPassword(email: string, otp: string, newPassword: string) {
-  if (!email || !otp || !newPassword) {
-    throw new BadRequestException('Missing required fields');
-  }
-
-  const normalizedEmail = email.trim().toLowerCase();
-
-  // verify OTP using email service
-  const isValid = await this.emailService.sendOtp(
-    normalizedEmail,
-    otp,
-  );
-
-  if (!isValid) {
-    throw new BadRequestException('Invalid or expired OTP');
-  }
-
-  await auth.api.updatePassword({
-    body: {
-      email: normalizedEmail,
-      newPassword,
-    },
-  });
-
-  // cleanup OTP after success
-  await this.emailService.sendOtp(normalizedEmail);
-
-  return {
-    success: true,
-    message: 'Password reset successful',
-  };
-}
   // ---------------- ME ----------------
   async getMe(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
+    if (!user) throw new UnauthorizedException('User not found');
 
-    return {
-      success: true,
-      data: user,
-    };
+    return { success: true, data: user };
   }
+
   // ---------------- LOGOUT ----------------
   async logout(token: string) {
+    if (!token) throw new BadRequestException('Token required');
+
     await auth.api.signOut({
       headers: {
         authorization: `Bearer ${token}`,
@@ -200,5 +171,3 @@ async resetPassword(email: string, otp: string, newPassword: string) {
     };
   }
 }
-
-

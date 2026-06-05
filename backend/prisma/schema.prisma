@@ -18,70 +18,80 @@ enum EmailStatus {
   FAILED
 }
 
+enum OtpType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  LOGOUT_VERIFICATION
+}
+
 model User {
-  id            String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  name          String
-  firstName     String
-  lastName      String
-  username      String   @unique
+  firstName String
+  lastName  String
 
-  birthDate     DateTime
-  phoneNumber   String
+  username String @unique
 
-  email         String   @unique
-  emailVerified Boolean  @default(false)
+  birthDate DateTime
 
-  image         String?
+  phoneNumber String @unique
 
-  role          Role     @default(USER)
+  email         String  @unique
+  emailVerified Boolean @default(false)
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  image String?
 
-  accounts      Account[]
-  sessions      Session[]
+  role Role @default(USER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts Account[]
+  sessions Session[]
 }
 
 model Session {
-  id        String   @id
+  id String @id
+
   expiresAt DateTime
   token     String   @unique
+
   createdAt DateTime
   updatedAt DateTime
 
   ipAddress String?
   userAgent String?
 
-  userId    String
-  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Account {
-  id        String @id
+  id String @id
 
   accountId  String
   providerId String
 
-  userId     String
-  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  accessToken           String?
-  refreshToken          String?
-  idToken               String?
+  accessToken  String?
+  refreshToken String?
+  idToken      String?
 
   accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
 
-  scope     String?
-  password  String?
+  scope String?
+
+  password String?
 
   createdAt DateTime
   updatedAt DateTime
 }
 
 model Verification {
-  id         String @id
+  id         String   @id
   identifier String
   value      String
   expiresAt  DateTime
@@ -91,39 +101,46 @@ model Verification {
 }
 
 model Email {
-  id        String      @id @default(cuid())
+  id String @id @default(cuid())
 
-  to        String
-  from      String?
+  to   String
+  from String?
 
-  subject   String
-  body      String
+  subject String
+  body    String
 
-  status    EmailStatus @default(PENDING)
+  status EmailStatus @default(PENDING)
 
-  error     String?
+  error String?
 
-  retries   Int         @default(0)
+  retries Int @default(0)
 
-  createdAt DateTime    @default(now())
+  createdAt DateTime  @default(now())
   sentAt    DateTime?
+
+  updatedAt DateTime @updatedAt
 }
 
 model Otp {
-  id           String   @id @default(cuid())
-  email        String
-  otp          String
-  expiresAt    DateTime
-  verified     Boolean  @default(false)
-  resendCount  Int      @default(0)
-  lastResendAt DateTime?
-  createdAt    DateTime @default(now())
-}
+  id String @id @default(cuid())
 
-model PasswordResetOtp {
-  id        String   @id @default(cuid())
-  email     String
-  otp       String
+  email String
+
+  otp String
+
+  type OtpType
+
+  verified Boolean @default(false)
+
+  resendCount Int @default(0)
+
   expiresAt DateTime
+
+  lastResendAt DateTime?
+
   createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([type])
+  @@index([email, type])
 }

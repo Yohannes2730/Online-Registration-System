@@ -4,10 +4,12 @@ CREATE TYPE "Role" AS ENUM ('USER', 'ADMIN');
 -- CreateEnum
 CREATE TYPE "EmailStatus" AS ENUM ('PENDING', 'SENT', 'FAILED');
 
+-- CreateEnum
+CREATE TYPE "OtpType" AS ENUM ('EMAIL_VERIFICATION', 'PASSWORD_RESET', 'LOGOUT_VERIFICATION');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
     "firstName" TEXT NOT NULL,
     "lastName" TEXT NOT NULL,
     "username" TEXT NOT NULL,
@@ -80,6 +82,7 @@ CREATE TABLE "Email" (
     "retries" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "sentAt" TIMESTAMP(3),
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Email_pkey" PRIMARY KEY ("id")
 );
@@ -89,9 +92,10 @@ CREATE TABLE "Otp" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "otp" TEXT NOT NULL,
-    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "type" "OtpType" NOT NULL,
     "verified" BOOLEAN NOT NULL DEFAULT false,
     "resendCount" INTEGER NOT NULL DEFAULT 0,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
     "lastResendAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -102,10 +106,22 @@ CREATE TABLE "Otp" (
 CREATE UNIQUE INDEX "User_username_key" ON "User"("username");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_phoneNumber_key" ON "User"("phoneNumber");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Session_token_key" ON "Session"("token");
+
+-- CreateIndex
+CREATE INDEX "Otp_email_idx" ON "Otp"("email");
+
+-- CreateIndex
+CREATE INDEX "Otp_type_idx" ON "Otp"("type");
+
+-- CreateIndex
+CREATE INDEX "Otp_email_type_idx" ON "Otp"("email", "type");
 
 -- AddForeignKey
 ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

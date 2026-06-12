@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MailerService } from '@nestjs-modules/mailer';
 import { randomInt } from 'crypto';
+import { OtpType } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -29,17 +30,17 @@ export class EmailService {
       where: { email },
     });
 
-    await this.prisma.otp.create({
-      data: {
-        email,
-        otp: hashedOtp,
-        expiresAt,
-        verified: false,
-        resendCount: 0,
-        lastResendAt: new Date(),
-      },
-    });
 
+await this.prisma.otp.create({
+  data: {
+    email,
+    otp: hashedOtp,
+    type: OtpType.EMAIL_VERIFICATION, 
+    expiresAt,
+    resendCount: 0,
+    lastResendAt: new Date(),
+  },
+});
     await this.mailerService.sendMail({
       to: email,
       from: `"Your App" <${process.env.EMAIL_USER}>`,

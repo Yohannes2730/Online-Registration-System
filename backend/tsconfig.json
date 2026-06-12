@@ -3,27 +3,28 @@
     "module": "commonjs",
     "moduleResolution": "node",
 
+    "target": "ES2023",
+    "lib": ["ES2023"],
+
+    "outDir": "./dist",
+    "baseUrl": "./",
+
     "esModuleInterop": true,
-    "declaration": true,
-    "removeComments": true,
+    "allowSyntheticDefaultImports": true,
 
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
 
-    "allowSyntheticDefaultImports": true,
-    "target": "ES2023",
+    "declaration": true,
+    "removeComments": true,
     "sourceMap": true,
-    "outDir": "./dist",
-    "baseUrl": "./",
+
     "incremental": true,
     "skipLibCheck": true,
 
-    "strictNullChecks": false,
-    "noImplicitAny": false,
-    "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false,
+    "strict": false,
 
     "forceConsistentCasingInFileNames": true,
-    "isolatedModules": false
+    "isolatedModules": true
   }
 }

@@ -8,6 +8,3 @@ export class EmailController {
 
   
   }
-
- 
-

@@ -29,8 +29,7 @@ export class EmailService {
     await this.prisma.otp.deleteMany({
       where: { email },
     });
-
-
+    
 await this.prisma.otp.create({
   data: {
     email,

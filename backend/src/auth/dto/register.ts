@@ -36,4 +36,5 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   image?: string;
+  
 }

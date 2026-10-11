@@ -55,7 +55,7 @@ export default function RegisterPage() {
 
       if (response?.data?.user) {
         setUser(response.data.user as any);
-        router.push('/user/dashboard');
+        router.push('/dashboard');
       }
     } catch (err: any) {
       setError(err.message || 'Failed to sign up');

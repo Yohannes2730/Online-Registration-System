@@ -22,7 +22,7 @@ export default function Home() {
                   </Link>
                 )}
                 {user?.role === 'user' && (
-                  <Link href="/user/dashboard">
+                  <Link href="/dashboard">
                     <Button variant="outline">User Dashboard</Button>
                   </Link>
                 )}

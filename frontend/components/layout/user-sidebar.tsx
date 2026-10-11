@@ -46,7 +46,7 @@ export function UserSidebar() {
 
         <nav className="p-6 space-y-2">
           <Link 
-            href="/user/dashboard"
+            href="/dashboard"
             className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition"
           >
             <Home size={20} />

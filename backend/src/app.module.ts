@@ -7,6 +7,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { EmailModule } from './email/email.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { EmailModule } from './email/email.module';
     AuthModule,
     PrismaModule,
     EmailModule,
+    RedisModule,
   ],
 
   controllers: [AppController],

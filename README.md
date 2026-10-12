@@ -417,29 +417,6 @@ Requirements:
 
 Create `.env.example` files with placeholders and explanations.
 
-Expected configuration includes:
-
-```env
-# Database
-DATABASE_URL="postgresql://user:password@postgres:5432/registration_db"
-
-# Redis
-REDIS_URL="redis://redis:6379"
-
-# Better Auth
-BETTER_AUTH_SECRET="replace-with-a-secure-random-secret"
-BETTER_AUTH_URL="http://localhost:3000"
-
-# Application URLs
-FRONTEND_URL="http://localhost:3000"
-BACKEND_URL="http://localhost:4000"
-
-# SMTP
-SMTP_HOST="smtp.example.com"
-SMTP_PORT=587
-SMTP_USER="your-email@example.com"
-SMTP_PASSWORD="your-smtp-password"
-SMTP_FROM="your-email@example.com"
 ```
 
 Adapt these examples to the actual ports, environment-loading strategy, and Nginx routing. When Nginx is the public entry point, distinguish the public application URL from internal container URLs.

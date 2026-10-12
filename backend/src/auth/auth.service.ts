@@ -3,6 +3,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { OtpType } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto } from './dto/register';
@@ -63,7 +64,10 @@ export class AuthService {
       },
     });
 
-    await this.emailService.sendOtp(normalizedEmail);
+    await this.emailService.sendOtp(
+      normalizedEmail,
+      OtpType.EMAIL_VERIFICATION,
+    );
 
     return {
       success: true,
@@ -82,7 +86,9 @@ export class AuthService {
       where: { email: normalizedEmail },
     });
 
-    if (!user) throw new UnauthorizedException('User not found');
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
 
     if (!user.emailVerified) {
       throw new UnauthorizedException('Verify email first');
@@ -110,9 +116,14 @@ export class AuthService {
       where: { email: normalizedEmail },
     });
 
-    if (!user) throw new BadRequestException('User not found');
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
 
-    await this.emailService.sendOtp(normalizedEmail);
+    await this.emailService.sendOtp(
+      normalizedEmail,
+      OtpType.PASSWORD_RESET,
+    );
 
     return {
       success: true,
@@ -121,14 +132,22 @@ export class AuthService {
   }
 
   // ---------------- RESET PASSWORD ----------------
-  async resetPassword(email: string, otp: string, newPassword: string) {
+  async resetPassword(
+    email: string,
+    otp: string,
+    newPassword: string,
+  ) {
     const normalizedEmail = email.trim().toLowerCase();
 
-    await this.emailService.verifyOtp(normalizedEmail, otp);
+    await this.emailService.verifyOtp(
+      normalizedEmail,
+      otp,
+      OtpType.PASSWORD_RESET,
+    );
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    await this.prisma.account.updateMany({
+    const result = await this.prisma.account.updateMany({
       where: {
         user: { email: normalizedEmail },
         providerId: 'credential',
@@ -137,6 +156,12 @@ export class AuthService {
         password: hashedPassword,
       },
     });
+
+    if (result.count === 0) {
+      throw new BadRequestException(
+        'Password could not be reset for this account',
+      );
+    }
 
     return {
       success: true,
@@ -150,14 +175,21 @@ export class AuthService {
       where: { id: userId },
     });
 
-    if (!user) throw new UnauthorizedException('User not found');
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
 
-    return { success: true, data: user };
+    return {
+      success: true,
+      data: user,
+    };
   }
 
   // ---------------- LOGOUT ----------------
   async logout(token: string) {
-    if (!token) throw new BadRequestException('Token required');
+    if (!token) {
+      throw new BadRequestException('Token required');
+    }
 
     await auth.api.signOut({
       headers: {

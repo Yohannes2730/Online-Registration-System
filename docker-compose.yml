@@ -10,6 +10,7 @@ services:
         condition: service_started
       redis:
         condition: service_healthy
+    restart: unless-stopped
 
   frontend:
     build: ./frontend
@@ -17,6 +18,7 @@ services:
       - "3000:3000"
     depends_on:
       - app
+    restart: unless-stopped
 
   db:
     image: postgres:16-alpine
@@ -28,10 +30,10 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
-    restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
@@ -40,6 +42,18 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+      - frontend
+    restart: unless-stopped
 
 volumes:
   db_data:
